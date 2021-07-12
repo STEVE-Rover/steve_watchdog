@@ -17,18 +17,19 @@ class TopicMonitor
     public:
         TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh);
         void topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& msg);
-        void printTopicInfo();
+        void printTopicMonitorInfo();
         void createSubscription();
         void start();
         bool getStatus();
+        void setName();
+        void setTopicName();
+        void minFreq();
+        void maxFreq();
 
-        // TODO: should these variables be private?
         std::string name_;
-        std::string topic_;
+        std::string topic_name_;
         float min_freq_;
         float max_freq_;
-        ros::Subscriber sub_;
-        std::thread thread_;
 
     private:
         void run();
@@ -37,6 +38,8 @@ class TopicMonitor
         ros::NodeHandle private_nh_;
         int ticks_ = 0;
         bool status_ = false;
+        ros::Subscriber sub_;
+        std::thread thread_;
 };
 
 class SteveWatchdog
@@ -47,7 +50,7 @@ class SteveWatchdog
         void run();
 
     private:
-        bool getTopics(std::vector<std::shared_ptr<TopicMonitor>>& topic_list);
+        bool createTopicMonitors();
 
         // ROS variables
         ros::NodeHandle nh_;

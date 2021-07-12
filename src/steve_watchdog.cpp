@@ -6,10 +6,13 @@ SteveWatchdog::SteveWatchdog(ros::NodeHandle nh, ros::NodeHandle private_nh):
     private_nh_(private_nh)
 {
     status_pub_ = nh_.advertise<std_msgs::Bool>("status", 1);
-    getTopics(topic_list_);
+    createTopicMonitors();
 }
 
-bool SteveWatchdog::getTopics(std::vector<std::shared_ptr<TopicMonitor>>& topic_list)
+/*!
+   * Fetches the topic information from the parameter server and creates the TopicMonitor objects
+   */
+bool SteveWatchdog::createTopicMonitors()
 {
     // get how many topics need to be monitored
     bool nb_of_topics_exists = private_nh_.getParam("nb_of_topics", nb_of_topics_);
@@ -24,31 +27,37 @@ bool SteveWatchdog::getTopics(std::vector<std::shared_ptr<TopicMonitor>>& topic_
     for(int i=0; i<nb_of_topics_; i++)
     {
         std::shared_ptr<TopicMonitor> topic = std::make_shared<TopicMonitor>(nh_, private_nh_);
-        std::string sensor = "sensor_" + std::to_string(i+1);
+        std::string topic_id = "topic_" + std::to_string(i+1);
 
-        bool name_exists = private_nh_.getParam( sensor + "/name" , topic->name_);
-        bool topic_exists = private_nh_.getParam( sensor + "/topic" , topic->topic_);
-        bool min_freq_exists = private_nh_.getParam( sensor + "/min_freq" , topic->min_freq_);
-        bool max_freq_exists = private_nh_.getParam( sensor + "/max_freq" , topic->max_freq_);
+        bool name_exists = private_nh_.getParam( topic_id + "/name" , topic->name_);
+        bool topic_exists = private_nh_.getParam( topic_id + "/topic_name" , topic->topic_name_);
+        bool min_freq_exists = private_nh_.getParam( topic_id + "/min_freq" , topic->min_freq_);
+        bool max_freq_exists = private_nh_.getParam( topic_id + "/max_freq" , topic->max_freq_);
         if(!(name_exists && topic_exists && min_freq_exists && max_freq_exists))
         {
-            ROS_FATAL("One or more parameter for %s is missing", sensor.c_str());
+            ROS_FATAL("One or more parameter for %s is missing", topic_id.c_str());
             return false;
         }
         // TODO: is there a way to subscribe only to the message event instead of receiving the message data?
         topic->start();
         topic->createSubscription();
-        std::cout << sensor << std::endl;
-        topic->printTopicInfo();
+        std::cout << topic_id << std::endl;
+        topic->printTopicMonitorInfo();
         topic_list_.push_back(topic);
     }
 }
 
+/*!
+   * Returns the number of topics
+   */
 int SteveWatchdog::getNbOfTopics()
 {
     return nb_of_topics_;
 }
 
+/*!
+   * Main loop
+   */
 void SteveWatchdog::run()
 {
     ros::Rate r(10);
@@ -73,19 +82,28 @@ TopicMonitor::TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh):
 {
 }
 
-void TopicMonitor::printTopicInfo()
+/*!
+   * Prints the TopicMonitor info for debugging
+   */
+void TopicMonitor::printTopicMonitorInfo()
 {
     std::cout << "name: " << name_ << std::endl;
-    std::cout << "topic: " << topic_ << std::endl;
+    std::cout << "topic_name: " << topic_name_ << std::endl;
     std::cout << "min_freq: " << min_freq_ << std::endl;
     std::cout << "max_freq: " << max_freq_ << std::endl << std::endl;
 }
 
+/*!
+   * Callback for when a new message is received
+   */
 void TopicMonitor::topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& msg)
 {
     ticks_++;
 }
 
+/*!
+   * Main loop
+   */
 void TopicMonitor::run()
 {
     // Check if two messages have been received in the last two periods.
@@ -107,16 +125,25 @@ void TopicMonitor::run()
     }
 }
 
+/*!
+   * Create subscription to the topic
+   */
 void TopicMonitor::createSubscription()
 {
-    sub_ = nh_.subscribe<topic_tools::ShapeShifter>(topic_, 1, boost::bind(&TopicMonitor::topicCB, this, _1));
+    sub_ = nh_.subscribe<topic_tools::ShapeShifter>(topic_name_, 1, boost::bind(&TopicMonitor::topicCB, this, _1));
 }
 
+/*!
+   * Start the topic monitoring thread
+   */
 void TopicMonitor::start()
 {
     thread_ = std::thread(&TopicMonitor::run, this);
 }
 
+/*!
+   * Returns the TopicMonitor status
+   */
 bool TopicMonitor::getStatus()
 {
     return status_;
