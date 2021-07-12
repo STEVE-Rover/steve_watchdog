@@ -1,0 +1,12 @@
+nb_of_topics: 2
+sensor_1:
+  name: imu
+  topic: /imu/data
+  min_freq: 90
+  max_freq: 110
+
+sensor_2:
+  name: depth_camera
+  topic: /d435/depth/color/points
+  max_freq: 8
+  min_freq: 2

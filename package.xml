@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>steve_watchdog</name>
+  <version>0.0.0</version>
+  <description>The steve_watchdog package</description>
+
+  <maintainer email="jeremie.bourque@usherbrooke.ca">jeremie</maintainer>
+
+  <license>BSD</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>roscpp</depend>
+  <depend>topic_tools</depend>
+
+  <export>
+  </export>
+
+</package>
