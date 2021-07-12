@@ -4,6 +4,7 @@ project(steve_watchdog)
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   topic_tools
+  std_msgs
 )
 
 catkin_package(
