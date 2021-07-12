@@ -4,33 +4,45 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <memory>
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <topic_tools/shape_shifter.h>
 
-struct TopicInfo
+class MonitoredTopic
 {
-    std::string name;
-    std::string topic;
-    float min_freq;
-    float max_freq;
-    ros::Subscriber sub;
+    public:
+        MonitoredTopic(ros::NodeHandle nh, ros::NodeHandle private_nh);
+        void topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& msg);
+        void printTopicInfo();
+
+        // TODO: should these variables be private?
+        std::string name_;
+        std::string topic_;
+        float min_freq_;
+        float max_freq_;
+        ros::Subscriber sub_;
+
+    private:
+        ros::NodeHandle nh_;
+        ros::NodeHandle private_nh_;
+        ros::Time previous_time_;
 };
 
 class SteveWatchdog
 {
     public:
         SteveWatchdog(ros::NodeHandle nh, ros::NodeHandle private_nh);
+        int getNbOfTopics();
 
     private:
-        bool getTopics(std::vector<TopicInfo>& topic_list);
-        void printTopicInfo(TopicInfo topic);
-        void topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& msg);
+        bool getTopics(std::vector<std::shared_ptr<MonitoredTopic>>& topic_list);
 
         // ROS variables
         ros::NodeHandle nh_;
         ros::NodeHandle private_nh_;
-        std::vector<TopicInfo> topic_list_;
+        std::vector<std::shared_ptr<MonitoredTopic>> topic_list_;
+        int nb_of_topics_;
 };
 
 
