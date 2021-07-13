@@ -6,6 +6,7 @@ SteveWatchdog::SteveWatchdog(ros::NodeHandle nh, ros::NodeHandle private_nh):
     private_nh_(private_nh)
 {
     status_pub_ = nh_.advertise<std_msgs::Bool>("status", 1);
+    info_pub_ = nh_.advertise<steve_watchdog::TopicArray>("info", 1);
     createTopicMonitors();
 }
 
@@ -32,8 +33,7 @@ bool SteveWatchdog::createTopicMonitors()
         bool name_exists = private_nh_.getParam( topic_id + "/name" , topic->name_);
         bool topic_exists = private_nh_.getParam( topic_id + "/topic_name" , topic->topic_name_);
         bool min_freq_exists = private_nh_.getParam( topic_id + "/min_freq" , topic->min_freq_);
-        bool max_freq_exists = private_nh_.getParam( topic_id + "/max_freq" , topic->max_freq_);
-        if(!(name_exists && topic_exists && min_freq_exists && max_freq_exists))
+        if(!(name_exists && topic_exists && min_freq_exists))
         {
             ROS_FATAL("One or more parameter for %s is missing", topic_id.c_str());
             return false;
@@ -63,15 +63,23 @@ void SteveWatchdog::run()
     ros::Rate r(10);
     while (ros::ok())
     {
-        std_msgs::Bool out_msg;
+        std_msgs::Bool status_msg;
+        steve_watchdog::TopicArray topic_array_msg;
         status_ = true;
+
         for(std::shared_ptr<TopicMonitor> t : topic_list_)
         {
+            steve_watchdog::TopicStatus topic_status_msg;
+            topic_status_msg.name = t->name_;
+            topic_status_msg.status = t->getStatus();
+            topic_array_msg.status.push_back(topic_status_msg);
             if(t->getStatus() == false)
                 status_ = false;                
         }
-        out_msg.data = status_;
-        status_pub_.publish(out_msg);
+        status_msg.data = status_;
+        topic_array_msg.header.stamp = ros::Time::now();
+        status_pub_.publish(status_msg);
+        info_pub_.publish(topic_array_msg);
         r.sleep();
     }
 }
@@ -90,7 +98,6 @@ void TopicMonitor::printTopicMonitorInfo()
     std::cout << "name: " << name_ << std::endl;
     std::cout << "topic_name: " << topic_name_ << std::endl;
     std::cout << "min_freq: " << min_freq_ << std::endl;
-    std::cout << "max_freq: " << max_freq_ << std::endl << std::endl;
 }
 
 /*!

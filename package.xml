@@ -12,6 +12,8 @@
   <depend>roscpp</depend>
   <depend>std_msgs</depend>
   <depend>topic_tools</depend>
+  <depend>message_generation</depend>
+  <depend>message_runtime</depend>
 
   <export>
   </export>

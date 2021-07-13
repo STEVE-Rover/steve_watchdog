@@ -6,11 +6,13 @@
 #include <string>
 #include <memory>
 #include <thread>
+#include <cmath>
 #include <ros/ros.h>
 #include <ros/console.h>
 #include <ros/callback_queue.h>
 #include <topic_tools/shape_shifter.h>
 #include <std_msgs/Bool.h>
+#include <steve_watchdog/TopicArray.h>
 
 class TopicMonitor
 {
@@ -29,7 +31,6 @@ class TopicMonitor
         std::string name_;
         std::string topic_name_;
         float min_freq_;
-        float max_freq_;
 
     private:
         void run();
@@ -56,6 +57,7 @@ class SteveWatchdog
         ros::NodeHandle nh_;
         ros::NodeHandle private_nh_;
         ros::Publisher status_pub_;
+        ros::Publisher info_pub_;
         std::vector<std::shared_ptr<TopicMonitor>> topic_list_;
         int nb_of_topics_;
         bool status_;
