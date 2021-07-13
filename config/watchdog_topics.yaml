@@ -1,0 +1,10 @@
+nb_of_topics: 2
+topic_1:
+  name: imu
+  topic_name: /imu/data
+  min_freq: 90
+
+topic_2:
+  name: depth_camera
+  topic_name: /d435/depth/color/points
+  min_freq: 2
