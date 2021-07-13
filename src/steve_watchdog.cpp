@@ -97,7 +97,7 @@ void TopicMonitor::printTopicMonitorInfo()
 {
     std::cout << "name: " << name_ << std::endl;
     std::cout << "topic_name: " << topic_name_ << std::endl;
-    std::cout << "min_freq: " << min_freq_ << std::endl;
+    std::cout << "min_freq: " << min_freq_ << std::endl << std::endl;
 }
 
 /*!
