@@ -12,6 +12,7 @@
 #include <ros/callback_queue.h>
 #include <topic_tools/shape_shifter.h>
 #include <std_msgs/Bool.h>
+#include <geometry_msgs/Twist.h>
 #include <steve_watchdog/TopicArray.h>
 
 class TopicMonitor
@@ -23,10 +24,6 @@ class TopicMonitor
         void createSubscription();
         void start();
         bool getStatus();
-        void setName();
-        void setTopicName();
-        void minFreq();
-        void maxFreq();
 
         std::string name_;
         std::string topic_name_;
@@ -52,10 +49,13 @@ class SteveWatchdog
 
     private:
         bool createTopicMonitors();
+        void cmdVelCB(const geometry_msgs::Twist::ConstPtr msg);
 
         // ROS variables
         ros::NodeHandle nh_;
         ros::NodeHandle private_nh_;
+        ros::Subscriber cmd_vel_sub_;
+        ros::Publisher cmd_vel_pub_;
         ros::Publisher status_pub_;
         ros::Publisher info_pub_;
         std::vector<std::shared_ptr<TopicMonitor>> topic_list_;

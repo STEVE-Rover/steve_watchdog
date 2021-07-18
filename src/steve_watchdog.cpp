@@ -5,6 +5,8 @@ SteveWatchdog::SteveWatchdog(ros::NodeHandle nh, ros::NodeHandle private_nh):
     nh_(nh),
     private_nh_(private_nh)
 {
+    cmd_vel_sub_ = nh_.subscribe("cmd_vel_in", 1, &SteveWatchdog::cmdVelCB, this);
+    cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel_out", 1);
     status_pub_ = nh_.advertise<std_msgs::Bool>("status", 1);
     info_pub_ = nh_.advertise<steve_watchdog::TopicArray>("info", 1);
     createTopicMonitors();
@@ -83,6 +85,18 @@ void SteveWatchdog::run()
         r.sleep();
     }
 }
+
+ void SteveWatchdog::cmdVelCB(const geometry_msgs::Twist::ConstPtr msg)
+ {
+     if(status_ == true)
+     {
+         cmd_vel_pub_.publish(msg);
+     }
+     else
+     {
+         cmd_vel_pub_.publish(geometry_msgs::Twist());
+     }
+ }
 
 TopicMonitor::TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh):
     nh_(nh),
