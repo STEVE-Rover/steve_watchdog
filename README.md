@@ -20,3 +20,6 @@ A topic is considered to have a good publishing frequency if it lies above the m
 ## Published topics
 * ~status (std_msgs/Bool): true if all of the topic frequencies are good, false otherwise.
 * ~info (steve_watchdog/TopicArray): List of all monitored topics with their status.
+
+## Common bugs
+* High frequency topics oscillate between true and false in Gazebo. This is caused by the simulated clock which has a bigger time step than the wall clock. To solve this, reduce the publishing frequency of the topic or make the time step smaller.
