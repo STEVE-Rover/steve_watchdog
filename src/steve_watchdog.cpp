@@ -24,6 +24,13 @@ bool SteveWatchdog::createTopicMonitors()
         ROS_FATAL("Missing nb_of_topics parameter");
         return false;
     }
+
+    bool rate_exists = private_nh_.getParam("rate", rate_);
+    if(!rate_exists)
+    {
+        ROS_FATAL("Missing rate parameter");
+        return false;
+    }
     ROS_INFO("Monitoring %d topics", nb_of_topics_);
 
     // retrieve all topics
@@ -31,16 +38,19 @@ bool SteveWatchdog::createTopicMonitors()
     {
         std::string topic_id = "topic_" + std::to_string(i+1);
         std::string name, topic_name;
-        float min_freq;
+        float min_freq, monitoring_rate;
+        bool use_average;
         bool name_exists = private_nh_.getParam( topic_id + "/name" , name);
         bool topic_exists = private_nh_.getParam( topic_id + "/topic_name" , topic_name);
         bool min_freq_exists = private_nh_.getParam( topic_id + "/min_freq" , min_freq);
-        if(!(name_exists && topic_exists && min_freq_exists))
+        bool use_average_exists = private_nh_.getParam( topic_id + "/use_average" , use_average);
+        bool monitoring_rate_exists = private_nh_.getParam( topic_id + "/monitoring_rate" , monitoring_rate);
+        if(!(name_exists && topic_exists && min_freq_exists && use_average_exists && monitoring_rate_exists))
         {
             ROS_FATAL("One or more parameter for %s is missing", topic_id.c_str());
             return false;
         }
-        std::shared_ptr<TopicMonitor> topic = std::make_shared<TopicMonitor>(nh_, private_nh_, name, topic_name, min_freq);
+        std::shared_ptr<TopicMonitor> topic = std::make_shared<TopicMonitor>(nh_, private_nh_, name, topic_name, min_freq, use_average, monitoring_rate);
         // TODO: is there a way to subscribe only to the message event instead of receiving the message data?
         topic->start();
         std::cout << topic_id << std::endl;
@@ -62,7 +72,7 @@ int SteveWatchdog::getNbOfTopics()
    */
 void SteveWatchdog::run()
 {
-    ros::Rate r(10);
+    ros::Rate r(rate_);
     while (ros::ok())
     {
         std_msgs::Bool status_msg;
@@ -98,12 +108,15 @@ void SteveWatchdog::cmdVelCB(const geometry_msgs::Twist::ConstPtr msg)
     }
  }
 
-TopicMonitor::TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh, std::string name, std::string topic_name, float min_freq):
+TopicMonitor::TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh, std::string name, std::string topic_name, 
+                           float min_freq, bool use_average, float rate):
     nh_(nh),
     private_nh_(private_nh),
     name_(name),
     topic_name_(topic_name),
-    min_freq_(min_freq)
+    min_freq_(min_freq),
+    use_average_(use_average),
+    rate_(rate)
 {
     min_time_ = 1 / min_freq_;
 }
@@ -123,8 +136,9 @@ void TopicMonitor::printTopicMonitorInfo()
    */
 void TopicMonitor::topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& msg)
 {
+    // TODO: implement option to use message time stamp instead of time received.
     const std::lock_guard<std::mutex> lock(mu_);
-    stamps_.push_back(ros::Time::now());
+    stamps_.push_back(msg.getReceiptTime());
 }
 
 /*!
@@ -138,10 +152,10 @@ void TopicMonitor::run()
     // run is at most the minimum frequency. For very high minimum frequencies, the check will be run at
     // 10 Hz since there is no reason to go faster than that.
     float run_freq;
-    if(min_freq_ < 10)
+    if(min_freq_ < rate_)
         run_freq = min_freq_;
     else
-        run_freq = 10;
+        run_freq = rate_;
     ros::Rate r(run_freq);
     while (ros::ok())
     {
@@ -150,13 +164,25 @@ void TopicMonitor::run()
             if(stamps_.size() >= 2)
             {
                 status_ = true;
+                float elapsed_time_sum = 0;
                 for(int i=0; i<stamps_.size()-1; i++)
                 {
                     float elapsed_time = (stamps_[i+1] - stamps_[i]).toSec();
-                    if(elapsed_time > min_time_)
+                    if(!use_average_ && elapsed_time > min_time_)
                     {
                         status_ = false;
                         break;
+                    }
+                    else
+                        elapsed_time_sum += elapsed_time;
+                }
+                if(use_average_)
+                {
+                    float average_time_elapsed = elapsed_time_sum / stamps_.size();
+                    // std::cout << "Average time: " << average_time_elapsed << std::endl;
+                    if(average_time_elapsed > min_time_)
+                    {
+                        status_ = false;
                     }
                 }
             }
@@ -170,6 +196,7 @@ void TopicMonitor::run()
                 stamps_.clear();
                 stamps_.push_back(last_stamp);
             }
+            // std::cout << "Status: " << status_ <<std::endl;
         }
         r.sleep();
     }

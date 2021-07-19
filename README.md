@@ -7,11 +7,14 @@ The topic is monitored by measuring the time elapsed between every every message
 ## Subscribed topics
 The list of topics the watchdog is subscribed to is listed in `config/watchdog_topics.yaml` which has the following structure:
 ```yaml
-nb_of_topics: 1
-topic_1:  # Must have the structure topic_X
-  name: imu  # Human readable name, can be anything
-  topic_name: /imu/data
-  min_freq: 90  # Hz
+nb_of_topics: 1  # Number of topics to monitor
+rate: 10  # Rate at which the info and status topics will be published
+topic_1:  # Must be topic_x (starts at 1)
+  name: topic1  # Human readable name, can be anything
+  topic_name: /topic1  # Name of the topic
+  min_freq: 40  # Minimum frequency
+  use_average: false  # Use the average frequency from the accumulated messages. Usefull if from time to time a message comes in late but we don't want it to cause the status to be false.
+  monitoring_rate: 10  # Rate at which to monitor this topic
 ```
 Topic numbers start at 1 and should enf at the the specified number of topics without any gaps.
 A topic is considered to have a good publishing frequency if it lies above the minimum.
@@ -23,3 +26,6 @@ A topic is considered to have a good publishing frequency if it lies above the m
 
 ## Common bugs
 * High frequency topics oscillate between true and false in Gazebo. This is caused by the simulated clock which has a bigger time step than the wall clock. To solve this, reduce the publishing frequency of the topic or make the time step smaller.
+
+## Possible improvements
+* Add option to use message time stamp instead of time of receipt.

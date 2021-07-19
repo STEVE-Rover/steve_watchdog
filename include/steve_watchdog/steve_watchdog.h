@@ -19,7 +19,8 @@
 class TopicMonitor
 {
     public:
-        TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh, std::string name, std::string topic_name, float min_freq);
+        TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh, std::string name, std::string topic_name, 
+                     float min_freq, bool use_average, float rate);
         void topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& msg);
         void printTopicMonitorInfo();
         void start();
@@ -35,6 +36,8 @@ class TopicMonitor
         std::string topic_name_;
         float min_freq_;
         float min_time_;
+        bool use_average_;
+        float rate_;
         std::vector<ros::Time> stamps_;
         bool status_ = false;
         ros::Subscriber sub_;
@@ -63,6 +66,7 @@ class SteveWatchdog
         std::vector<std::shared_ptr<TopicMonitor>> topic_list_;
         int nb_of_topics_;
         bool status_;
+        float rate_;
 };
 
 
