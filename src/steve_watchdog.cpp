@@ -207,7 +207,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     ros::NodeHandle private_nh("~");
     SteveWatchdog steve_watchdog(nh, private_nh);
-    ros::AsyncSpinner spinner(1);  // steve_watchdog.getNbOfTopics()
+    ros::AsyncSpinner spinner(steve_watchdog.getNbOfTopics());
     spinner.start();
     steve_watchdog.run();
     ros::waitForShutdown();
