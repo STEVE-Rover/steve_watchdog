@@ -32,6 +32,7 @@ bool SteveWatchdog::createTopicMonitors()
         std::shared_ptr<TopicMonitor> topic = std::make_shared<TopicMonitor>(nh_, private_nh_);
         std::string topic_id = "topic_" + std::to_string(i+1);
 
+        // TODO: TopicMonitor params should be passed to constructor intead of member variables
         bool name_exists = private_nh_.getParam( topic_id + "/name" , topic->name_);
         bool topic_exists = private_nh_.getParam( topic_id + "/topic_name" , topic->topic_name_);
         bool min_freq_exists = private_nh_.getParam( topic_id + "/min_freq" , topic->min_freq_);
@@ -41,6 +42,7 @@ bool SteveWatchdog::createTopicMonitors()
             return false;
         }
         // TODO: is there a way to subscribe only to the message event instead of receiving the message data?
+        topic->min_time_ = 1 / topic->min_freq_;
         topic->start();
         topic->createSubscription();
         std::cout << topic_id << std::endl;
@@ -119,7 +121,9 @@ void TopicMonitor::printTopicMonitorInfo()
    */
 void TopicMonitor::topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& msg)
 {
+    const std::lock_guard<std::mutex> lock(mu_);
     ticks_++;
+    stamps_.push_back(ros::Time::now());
 }
 
 /*!
@@ -127,21 +131,47 @@ void TopicMonitor::topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& m
    */
 void TopicMonitor::run()
 {
+    // TODO: change this explanation
     // Check if two messages have been received in the last two periods.
     // Only checking one period is not sufficient because there will always eventually be a period
     // containing one message for any lower publishing frequency.
-    ros::Rate r(min_freq_/2);
+    ros::Rate r(min_freq_);
     while (ros::ok())
     {
-        if(ticks_ < 2)
         {
-            status_ = false;
+            const std::lock_guard<std::mutex> lock(mu_);
+            if(stamps_.size() >= 2)
+            {
+                std::cout << "stamps_.size() >= 2" <<std::endl;
+                std::cout << "min_time_: " << min_time_ << std::endl;
+                for(int i=0; i<stamps_.size()-1; i++)
+                {
+                    float elapsed_time = (stamps_[i+1] - stamps_[i]).toSec();
+                    std::cout << "elapsed_time: " << elapsed_time << std::endl;
+                    if(elapsed_time <= min_time_)
+                    {
+                        status_ = true;
+                    }
+                    else
+                    {
+                        status_ = false;
+                    }
+                }
+            }
+            else
+            {
+                status_ = false;
+            }
+            if(stamps_.size() >= 1)
+            {
+                ros::Time last_stamp = stamps_[stamps_.size()-1];
+                stamps_.clear();
+                stamps_.push_back(last_stamp);
+            }
+            ticks_ = 0;
+            std::cout << "status_: " << status_ << std::endl;
         }
-        else
-        {
-            status_ = true;
-        }
-        ticks_ = 0;
+        //TODO: need mutex for ticks, stamps and status
         r.sleep();
     }
 }
@@ -176,7 +206,7 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
     ros::NodeHandle private_nh("~");
     SteveWatchdog steve_watchdog(nh, private_nh);
-    ros::AsyncSpinner spinner(steve_watchdog.getNbOfTopics());
+    ros::AsyncSpinner spinner(1);  // steve_watchdog.getNbOfTopics()
     spinner.start();
     steve_watchdog.run();
     ros::waitForShutdown();

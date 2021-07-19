@@ -6,6 +6,7 @@
 #include <string>
 #include <memory>
 #include <thread>
+#include <mutex>
 #include <cmath>
 #include <ros/ros.h>
 #include <ros/console.h>
@@ -28,6 +29,7 @@ class TopicMonitor
         std::string name_;
         std::string topic_name_;
         float min_freq_;
+        float min_time_;
 
     private:
         void run();
@@ -35,9 +37,11 @@ class TopicMonitor
         ros::NodeHandle nh_;
         ros::NodeHandle private_nh_;
         int ticks_ = 0;
+        std::vector<ros::Time> stamps_;
         bool status_ = false;
         ros::Subscriber sub_;
         std::thread thread_;
+        std::mutex mu_;
 };
 
 class SteveWatchdog
