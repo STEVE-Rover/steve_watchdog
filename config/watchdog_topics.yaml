@@ -1,15 +1,22 @@
 nb_of_topics: 3
+rate: 10
 topic_1:
-  name: imu
+  name: topic1
   topic_name: /topic1
-  min_freq: 80
+  min_freq: 40
+  use_average: false
+  monitoring_rate: 10
 
 topic_2:
-  name: depth_camera
+  name: topic2
   topic_name: /topic2
   min_freq: 3
+  use_average: false
+  monitoring_rate: 10
 
 topic_3:
-  name: gps
+  name: topic3
   topic_name: /topic3
   min_freq: 0.5
+  use_average: false
+  monitoring_rate: 10
