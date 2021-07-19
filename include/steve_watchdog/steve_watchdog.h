@@ -19,24 +19,22 @@
 class TopicMonitor
 {
     public:
-        TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh);
+        TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh, std::string name, std::string topic_name, float min_freq);
         void topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& msg);
         void printTopicMonitorInfo();
-        void createSubscription();
         void start();
         bool getStatus();
-
-        std::string name_;
-        std::string topic_name_;
-        float min_freq_;
-        float min_time_;
+        std::string getName();
 
     private:
         void run();
 
         ros::NodeHandle nh_;
         ros::NodeHandle private_nh_;
-        int ticks_ = 0;
+        std::string name_;
+        std::string topic_name_;
+        float min_freq_;
+        float min_time_;
         std::vector<ros::Time> stamps_;
         bool status_ = false;
         ros::Subscriber sub_;
