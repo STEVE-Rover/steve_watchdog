@@ -5,6 +5,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   topic_tools
   std_msgs
+  geometry_msgs
   message_generation
 )
 

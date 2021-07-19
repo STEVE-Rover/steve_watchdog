@@ -5,6 +5,8 @@ SteveWatchdog::SteveWatchdog(ros::NodeHandle nh, ros::NodeHandle private_nh):
     nh_(nh),
     private_nh_(private_nh)
 {
+    cmd_vel_sub_ = nh_.subscribe("cmd_vel_in", 1, &SteveWatchdog::cmdVelCB, this);
+    cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel_out", 1);
     status_pub_ = nh_.advertise<std_msgs::Bool>("status", 1);
     info_pub_ = nh_.advertise<steve_watchdog::TopicArray>("info", 1);
     createTopicMonitors();
@@ -27,20 +29,20 @@ bool SteveWatchdog::createTopicMonitors()
     // retrieve all topics
     for(int i=0; i<nb_of_topics_; i++)
     {
-        std::shared_ptr<TopicMonitor> topic = std::make_shared<TopicMonitor>(nh_, private_nh_);
         std::string topic_id = "topic_" + std::to_string(i+1);
-
-        bool name_exists = private_nh_.getParam( topic_id + "/name" , topic->name_);
-        bool topic_exists = private_nh_.getParam( topic_id + "/topic_name" , topic->topic_name_);
-        bool min_freq_exists = private_nh_.getParam( topic_id + "/min_freq" , topic->min_freq_);
+        std::string name, topic_name;
+        float min_freq;
+        bool name_exists = private_nh_.getParam( topic_id + "/name" , name);
+        bool topic_exists = private_nh_.getParam( topic_id + "/topic_name" , topic_name);
+        bool min_freq_exists = private_nh_.getParam( topic_id + "/min_freq" , min_freq);
         if(!(name_exists && topic_exists && min_freq_exists))
         {
             ROS_FATAL("One or more parameter for %s is missing", topic_id.c_str());
             return false;
         }
+        std::shared_ptr<TopicMonitor> topic = std::make_shared<TopicMonitor>(nh_, private_nh_, name, topic_name, min_freq);
         // TODO: is there a way to subscribe only to the message event instead of receiving the message data?
         topic->start();
-        topic->createSubscription();
         std::cout << topic_id << std::endl;
         topic->printTopicMonitorInfo();
         topic_list_.push_back(topic);
@@ -70,7 +72,7 @@ void SteveWatchdog::run()
         for(std::shared_ptr<TopicMonitor> t : topic_list_)
         {
             steve_watchdog::TopicStatus topic_status_msg;
-            topic_status_msg.name = t->name_;
+            topic_status_msg.name = t->getName();
             topic_status_msg.status = t->getStatus();
             topic_array_msg.status.push_back(topic_status_msg);
             if(t->getStatus() == false)
@@ -84,10 +86,26 @@ void SteveWatchdog::run()
     }
 }
 
-TopicMonitor::TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh):
-    nh_(nh),
-    private_nh_(private_nh)
+void SteveWatchdog::cmdVelCB(const geometry_msgs::Twist::ConstPtr msg)
 {
+    if(status_ == true)
+    {
+        cmd_vel_pub_.publish(msg);
+    }
+    else
+    {
+        cmd_vel_pub_.publish(geometry_msgs::Twist());
+    }
+ }
+
+TopicMonitor::TopicMonitor(ros::NodeHandle nh, ros::NodeHandle private_nh, std::string name, std::string topic_name, float min_freq):
+    nh_(nh),
+    private_nh_(private_nh),
+    name_(name),
+    topic_name_(topic_name),
+    min_freq_(min_freq)
+{
+    min_time_ = 1 / min_freq_;
 }
 
 /*!
@@ -105,7 +123,8 @@ void TopicMonitor::printTopicMonitorInfo()
    */
 void TopicMonitor::topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& msg)
 {
-    ticks_++;
+    const std::lock_guard<std::mutex> lock(mu_);
+    stamps_.push_back(ros::Time::now());
 }
 
 /*!
@@ -113,31 +132,47 @@ void TopicMonitor::topicCB(const ros::MessageEvent<topic_tools::ShapeShifter>& m
    */
 void TopicMonitor::run()
 {
-    // Check if two messages have been received in the last two periods.
-    // Only checking one period is not sufficient because there will always eventually be a period
-    // containing one message for any lower publishing frequency.
-    ros::Rate r(min_freq_/2);
+    // Check in the list of time stamps if the time between each message respects the minimum frequency.
+    // Once the list is checked, it is cleared and the last time stamp is added at the begining of the
+    // new one so that it can also be checked with the next message. The frequency at which the check must
+    // run is at most the minimum frequency. For very high minimum frequencies, the check will be run at
+    // 10 Hz since there is no reason to go faster than that.
+    float run_freq;
+    if(min_freq_ < 10)
+        run_freq = min_freq_;
+    else
+        run_freq = 10;
+    ros::Rate r(run_freq);
     while (ros::ok())
     {
-        if(ticks_ < 2)
         {
-            status_ = false;
+            const std::lock_guard<std::mutex> lock(mu_);
+            if(stamps_.size() >= 2)
+            {
+                status_ = true;
+                for(int i=0; i<stamps_.size()-1; i++)
+                {
+                    float elapsed_time = (stamps_[i+1] - stamps_[i]).toSec();
+                    if(elapsed_time > min_time_)
+                    {
+                        status_ = false;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                status_ = false;
+            }
+            if(stamps_.size() >= 1)
+            {
+                ros::Time last_stamp = stamps_[stamps_.size()-1];
+                stamps_.clear();
+                stamps_.push_back(last_stamp);
+            }
         }
-        else
-        {
-            status_ = true;
-        }
-        ticks_ = 0;
         r.sleep();
     }
-}
-
-/*!
-   * Create subscription to the topic
-   */
-void TopicMonitor::createSubscription()
-{
-    sub_ = nh_.subscribe<topic_tools::ShapeShifter>(topic_name_, 1, boost::bind(&TopicMonitor::topicCB, this, _1));
 }
 
 /*!
@@ -145,15 +180,25 @@ void TopicMonitor::createSubscription()
    */
 void TopicMonitor::start()
 {
+    sub_ = nh_.subscribe<topic_tools::ShapeShifter>(topic_name_, 1, boost::bind(&TopicMonitor::topicCB, this, _1));
     thread_ = std::thread(&TopicMonitor::run, this);
 }
 
 /*!
    * Returns the TopicMonitor status
-   */
+*/
 bool TopicMonitor::getStatus()
 {
+    const std::lock_guard<std::mutex> lock(mu_);
     return status_;
+}
+
+/*!
+   * Returns the TopicMonitor name
+*/
+std::string TopicMonitor::getName()
+{
+    return name_;
 }
 
 int main(int argc, char **argv)
