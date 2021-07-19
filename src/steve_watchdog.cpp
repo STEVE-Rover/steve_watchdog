@@ -149,12 +149,10 @@ void TopicMonitor::run()
             const std::lock_guard<std::mutex> lock(mu_);
             if(stamps_.size() >= 2)
             {
-                std::cout << "min_time_: " << min_time_ << std::endl;
                 status_ = true;
                 for(int i=0; i<stamps_.size()-1; i++)
                 {
                     float elapsed_time = (stamps_[i+1] - stamps_[i]).toSec();
-                    std::cout << "elapsed_time: " << elapsed_time << std::endl;
                     if(elapsed_time > min_time_)
                     {
                         status_ = false;
@@ -164,7 +162,6 @@ void TopicMonitor::run()
             }
             else
             {
-                std::cout << "stamps_ empty" << std::endl;
                 status_ = false;
             }
             if(stamps_.size() >= 1)
@@ -173,7 +170,6 @@ void TopicMonitor::run()
                 stamps_.clear();
                 stamps_.push_back(last_stamp);
             }
-            std::cout << "status_: " << status_ << std::endl;
         }
         r.sleep();
     }
