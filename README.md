@@ -2,7 +2,7 @@
 This package subscribes and monitors the publishing frequency of any number and type of topic. If one or more of the topics is publishing under the minimum rate, the status of the watchdog will be false. Otherwise it will be true.
 
 ## How it works
-Every time a message from a topic is received, a counter is incremented. If the number of received messages for a two periods is lower than it should be, that means there is a problem with the publishing frequency.
+The topic is monitored by measuring the time elapsed between every every messages. If the time is longer than the period of the minimum frequency, the topic status will be false.
 
 ## Subscribed topics
 The list of topics the watchdog is subscribed to is listed in `config/watchdog_topics.yaml` which has the following structure:
