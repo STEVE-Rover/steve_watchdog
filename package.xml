@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>steve_watchdog</name>
+  <name>zeus_watchdog</name>
   <version>0.0.0</version>
-  <description>The steve_watchdog package</description>
+  <description>The zeus_watchdog package</description>
 
   <maintainer email="jeremie.bourque@usherbrooke.ca">jeremie</maintainer>
 

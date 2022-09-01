@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <node pkg="steve_watchdog" type="heartbeat.py" name="heartbeat">
+    <node pkg="zeus_watchdog" type="heartbeat.py" name="heartbeat">
         <param name="rate" value="2"/>
     </node>
 </launch>

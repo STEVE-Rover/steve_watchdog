@@ -1,0 +1,6 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="zeus_watchdog" pkg="zeus_watchdog" type="zeus_watchdog" output="screen" >
+        <rosparam file="$(find zeus_watchdog)/config/watchdog_topics.yaml" command="load" />
+    </node>
+</launch>

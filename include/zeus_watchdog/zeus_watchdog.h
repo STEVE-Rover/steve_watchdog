@@ -1,5 +1,5 @@
-#ifndef STEVE_WATCHDOG_H
-#define STEVE_WATCHDOG_H
+#ifndef ZEUS_WATCHDOG_H
+#define ZEUS_WATCHDOG_H
 
 #include <iostream>
 #include <vector>
@@ -14,7 +14,7 @@
 #include <topic_tools/shape_shifter.h>
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/Twist.h>
-#include <steve_watchdog/TopicArray.h>
+#include <zeus_watchdog/TopicArray.h>
 
 class TopicMonitor
 {
@@ -45,10 +45,10 @@ class TopicMonitor
         std::mutex mu_;
 };
 
-class SteveWatchdog
+class ZeusWatchdog
 {
     public:
-        SteveWatchdog(ros::NodeHandle nh, ros::NodeHandle private_nh);
+        ZeusWatchdog(ros::NodeHandle nh, ros::NodeHandle private_nh);
         int getNbOfTopics();
         void run();
 
