@@ -1,21 +1,21 @@
-#include <steve_watchdog/steve_watchdog.h>
+#include <zeus_watchdog/zeus_watchdog.h>
 
 
-SteveWatchdog::SteveWatchdog(ros::NodeHandle nh, ros::NodeHandle private_nh):
+ZeusWatchdog::ZeusWatchdog(ros::NodeHandle nh, ros::NodeHandle private_nh):
     nh_(nh),
     private_nh_(private_nh)
 {
-    cmd_vel_sub_ = nh_.subscribe("cmd_vel_in", 1, &SteveWatchdog::cmdVelCB, this);
+    cmd_vel_sub_ = nh_.subscribe("cmd_vel_in", 1, &ZeusWatchdog::cmdVelCB, this);
     cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>("cmd_vel_out", 1);
     status_pub_ = nh_.advertise<std_msgs::Bool>("status", 1);
-    info_pub_ = nh_.advertise<steve_watchdog::TopicArray>("info", 1);
+    info_pub_ = nh_.advertise<zeus_watchdog::TopicArray>("info", 1);
     createTopicMonitors();
 }
 
 /*!
    * Fetches the topic information from the parameter server and creates the TopicMonitor objects
    */
-bool SteveWatchdog::createTopicMonitors()
+bool ZeusWatchdog::createTopicMonitors()
 {
     // get how many topics need to be monitored
     bool nb_of_topics_exists = private_nh_.getParam("nb_of_topics", nb_of_topics_);
@@ -62,7 +62,7 @@ bool SteveWatchdog::createTopicMonitors()
 /*!
    * Returns the number of topics
    */
-int SteveWatchdog::getNbOfTopics()
+int ZeusWatchdog::getNbOfTopics()
 {
     return nb_of_topics_;
 }
@@ -70,18 +70,18 @@ int SteveWatchdog::getNbOfTopics()
 /*!
    * Main loop
    */
-void SteveWatchdog::run()
+void ZeusWatchdog::run()
 {
     ros::Rate r(rate_);
     while (ros::ok())
     {
         std_msgs::Bool status_msg;
-        steve_watchdog::TopicArray topic_array_msg;
+        zeus_watchdog::TopicArray topic_array_msg;
         status_ = true;
 
         for(std::shared_ptr<TopicMonitor> t : topic_list_)
         {
-            steve_watchdog::TopicStatus topic_status_msg;
+            zeus_watchdog::TopicStatus topic_status_msg;
             topic_status_msg.name = t->getName();
             topic_status_msg.status = t->getStatus();
             topic_array_msg.status.push_back(topic_status_msg);
@@ -96,7 +96,7 @@ void SteveWatchdog::run()
     }
 }
 
-void SteveWatchdog::cmdVelCB(const geometry_msgs::Twist::ConstPtr msg)
+void ZeusWatchdog::cmdVelCB(const geometry_msgs::Twist::ConstPtr msg)
 {
     if(status_ == true)
     {
@@ -230,13 +230,13 @@ std::string TopicMonitor::getName()
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "steve_watchdog");
+    ros::init(argc, argv, "zeus_watchdog");
     ros::NodeHandle nh;
     ros::NodeHandle private_nh("~");
-    SteveWatchdog steve_watchdog(nh, private_nh);
-    ros::AsyncSpinner spinner(steve_watchdog.getNbOfTopics());
+    ZeusWatchdog zeus_watchdog(nh, private_nh);
+    ros::AsyncSpinner spinner(zeus_watchdog.getNbOfTopics());
     spinner.start();
-    steve_watchdog.run();
+    zeus_watchdog.run();
     ros::waitForShutdown();
     return 0;
 }

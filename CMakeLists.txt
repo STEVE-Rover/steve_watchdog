@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(steve_watchdog)
+project(zeus_watchdog)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
@@ -29,6 +29,6 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-add_executable(steve_watchdog src/steve_watchdog.cpp)
-add_dependencies(steve_watchdog steve_watchdog_generate_messages_cpp)
-target_link_libraries(steve_watchdog ${catkin_LIBRARIES})
+add_executable(zeus_watchdog src/zeus_watchdog.cpp)
+add_dependencies(zeus_watchdog zeus_watchdog_generate_messages_cpp)
+target_link_libraries(zeus_watchdog ${catkin_LIBRARIES})

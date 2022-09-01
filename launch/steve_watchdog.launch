@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <launch>
-    <node name="steve_watchdog" pkg="steve_watchdog" type="steve_watchdog" output="screen" >
-        <rosparam file="$(find steve_watchdog)/config/watchdog_topics.yaml" command="load" />
+    <node name="zeus_watchdog" pkg="zeus_watchdog" type="zeus_watchdog" output="screen" >
+        <rosparam file="$(find zeus_watchdog)/config/watchdog_topics.yaml" command="load" />
     </node>
 </launch>
